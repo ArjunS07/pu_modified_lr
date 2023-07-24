@@ -59,8 +59,9 @@ class ModifiedLogisticRegression:
         self.epochs = epochs
         self.learning_rate = learning_rate
 
-    def fit(self, X, s):
+    def fit(self, X, s: pd.Series):
         n, m = X.shape
+        s = s.to_numpy()[:, np.newaxis]
         X, s = shuffle(X, s)
         X, mean, normRange = normalize_data(X)
 
