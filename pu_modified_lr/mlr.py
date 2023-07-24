@@ -10,7 +10,7 @@ import warnings
 empty = np.zeros((0, 0))
 
 
-def __shuffle(x, y=empty, z=empty):
+def shuffle(x, y=empty, z=empty):
     order = np.random.permutation(x.shape[0])
     x_shuffled = x[order, :]
     y_flag = False
@@ -35,7 +35,7 @@ def __shuffle(x, y=empty, z=empty):
 
 
 # Min/max normalization of data
-def __normalize_data(data):  # Assumes columns = features and rows = samples
+def normalize_data(data):  # Assumes columns = features and rows = samples
     mean = np.mean(data, axis=0)
     normRange = np.max(data, axis=0) - np.min(data, axis=0)  # np.std(data, axis=0)
 
@@ -61,8 +61,8 @@ class ModifiedLogisticRegression:
 
     def fit(self, X, s):
         n, m = X.shape
-        X, s = __shuffle(X, s)
-        X, mean, normRange = __normalize_data(X)
+        X, s = shuffle(X, s)
+        X, mean, normRange = normalize_data(X)
 
         # Add a column of ones
         X = np.concatenate((np.ones((n, 1)), X), axis=1)
@@ -72,7 +72,7 @@ class ModifiedLogisticRegression:
 
         for i in range(self.epochs):
             # shuffle data for this epoch
-            X, s = __shuffle(X, s)
+            X, s = shuffle(X, s)
 
             # Cycle through each datasample (need to vectorize!)
             for t in range(n):
@@ -124,6 +124,6 @@ class ModifiedLogisticRegression:
     def predict(self, X):
         predicted_proba = self.predict_proba(X)
 
-        # Convert to list of bools and multiply
+        # Convert proba to list of bools and multiply
         preds = (predicted_proba >= 0.5) * 1
         return preds
