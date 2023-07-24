@@ -127,4 +127,4 @@ class ModifiedLogisticRegression:
 
         # Convert proba to list of bools and multiply
         preds = (predicted_proba >= 0.5) * 1
-        return preds
+        return preds.flatten()
