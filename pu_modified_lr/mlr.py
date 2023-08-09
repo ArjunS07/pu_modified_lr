@@ -58,6 +58,11 @@ class ModifiedLogisticRegression:
     def __init__(self, epochs=100, learning_rate=0.01):
         self.epochs = epochs
         self.learning_rate = learning_rate
+        self.b = 0
+        self.c_hat = 0
+        self.feature_weights = 0
+        self.mean = 0
+        self.normRange = 0
 
     def fit(self, X, s: pd.Series):
         n, m = X.shape
@@ -79,7 +84,7 @@ class ModifiedLogisticRegression:
             for t in range(n):
                 # Calculate partial derivative components
                 e_w = np.exp(np.dot(-feature_weights, X[t, :].T))
-                d1 = b * b + e_w
+                d1 = (b * b) + e_w
                 d2 = 1 + d1
 
                 if math.isinf(e_w):
@@ -93,7 +98,7 @@ class ModifiedLogisticRegression:
                 b = b + self.learning_rate * db
 
         # Estimate c=p(s=1|y=1) using learned b value
-        c_hat = np.divide(1, (1 + b * b))
+        c_hat = np.divide(1, (1 + (b**2)))
 
         self.b = b
         self.c_hat = c_hat
