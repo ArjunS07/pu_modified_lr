@@ -3,35 +3,17 @@ import random
 import numpy as np
 import pandas as pd
 import warnings
+import logging
 
 # Utilities
 
-# Shuffle arrays together in sync
-empty = np.zeros((0, 0))
-
-
-def shuffle(x, y=empty, z=empty):
-    order = np.random.permutation(x.shape[0])
-    x_shuffled = x[order, :]
-    y_flag = False
-    z_flag = False
-    if y.shape[0] > 0:
-        assert y.shape[0] == x.shape[0], "Arrays must have the same length."
-        y_shuffled = y[order, :]
-        y_flag = True
-
-    if z.shape[0] > 0:
-        assert z.shape[0] == x.shape[0], "Arrays must have the same length."
-        z_shuffled = z[order, :]
-        z_flag = True
-
-    # Accomodate different number of outputs
-    if y_flag and z_flag:
-        return x_shuffled, y_shuffled, z_shuffled
-    elif y_flag and not z_flag:
-        return x_shuffled, y_shuffled
-    elif not y_flag and not z_flag:
-        return x_shuffled
+def shuffle(list_1, list_2):
+    """Shuffle arrays together in sync."""
+    assert list_2.shape[0] == list_1.shape[0], "Arrays must have the same length."
+    order = np.random.permutation(list_1.shape[0])
+    list1_shuffled = list_1[order, :]
+    list2_shuffled = list_2[order, :]
+    return list1_shuffled, list2_shuffled
 
 
 # Min/max normalization of data
@@ -49,42 +31,55 @@ def normalize_data(data):  # Assumes columns = features and rows = samples
 
 
 class ModifiedLogisticRegression:
-    b = 0
-    c_hat = 0
-    feature_weights = 0
-    mean = 0
-    normRange = 0
 
     def __init__(self, epochs=100, learning_rate=0.01):
         self.epochs = epochs
         self.learning_rate = learning_rate
+
+        # Learned parameters of the MLR function are initialised to zero values initially
         self.b = 0
         self.c_hat = 0
-        self.feature_weights = 0
-        self.mean = 0
-        self.normRange = 0
+        self.feature_weights = None
+
+        # We need to save the normalisation data
+        self.mean = None
+        self.normRange = None
 
     def fit(self, X, s: pd.Series):
+        """
+        X: input data
+        s: known labels
+        """
         n, m = X.shape
+
+        # Reshape the series into a 2D numpy array while preserving the order of values
         s = s.to_numpy()[:, np.newaxis]
+
+        # Shuffle the values while preserving their relative order
         X, s = shuffle(X, s)
+
+        # Normalize the data and save the mean and range
         X, mean, normRange = normalize_data(X)
+        self.mean = mean
+        self.normRange = normRange
 
         # Add a column of ones
         X = np.concatenate((np.ones((n, 1)), X), axis=1)
 
-        feature_weights = np.ones((1, m + 1))
-        b = 1
+        # Updated the learned parameters with initial values
+        self.feature_weights = np.ones((1, m + 1))
+        self.b = 1
 
+        # Train across the number of epochs
         for i in range(self.epochs):
-            # shuffle data for this epoch
+            # Shuffle data for this epoch
             X, s = shuffle(X, s)
 
             # Cycle through each datasample (need to vectorize!)
             for t in range(n):
                 # Calculate partial derivative components
-                e_w = np.exp(np.dot(-feature_weights, X[t, :].T))
-                d1 = (b * b) + e_w
+                e_w = np.exp(np.dot(-self.feature_weights, X[t, :].T))
+                d1 = (self.b * self.b) + e_w
                 d2 = 1 + d1
 
                 if math.isinf(e_w):
@@ -92,19 +87,14 @@ class ModifiedLogisticRegression:
                 else:
                     dw = ((s[t] - 1) / d1 + 1 / d2) * X[t, :] * e_w
 
-                db = ((1 - s[t]) / d1 - 1 / d2) * 2 * b
+                db = ((1 - s[t]) / d1 - 1 / d2) * 2 * self.b
 
-                feature_weights = feature_weights + self.learning_rate * dw
-                b = b + self.learning_rate * db
+                self.feature_weights = self.feature_weights + self.learning_rate * dw
+                self.b = self.b + self.learning_rate * db
+            logging.info(f'Epoch {i}: b={self.b}, c={self.c_hat}, w={self.feature_weights}')
 
         # Estimate c=p(s=1|y=1) using learned b value
-        c_hat = np.divide(1, (1 + (b**2)))
-
-        self.b = b
-        self.c_hat = c_hat
-        self.feature_weights = feature_weights
-        self.mean = mean
-        self.normRange = normRange
+        self.c_hat = np.divide(1, (1 + (self.b**2)))
 
     def predict_proba(self, X):
         n, m = X.shape
@@ -130,6 +120,6 @@ class ModifiedLogisticRegression:
     def predict(self, X):
         predicted_proba = self.predict_proba(X)
 
-        # Convert proba to list of bools and multiply
+        # Convert proba to list of bools and multiply by 1 to turn into int
         preds = (predicted_proba >= 0.5) * 1
         return preds.flatten()
