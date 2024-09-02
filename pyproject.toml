@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mlr_arjunsharma_pip"
+name = "MLR_ArjunS07_pip"
 version = "0.0.1"
 readme = "README.md"
 requires-python = ">=3.7"
